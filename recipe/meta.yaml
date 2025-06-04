@@ -38,9 +38,6 @@ outputs:
     script: build_base.sh   # [not win]
     requirements:
       build:
-        - python                                 # [build_platform != target_platform]
-        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
-        - cython                                 # [build_platform != target_platform]
         - {{ compiler('cxx') }}
       host:
         - pip
@@ -52,6 +49,11 @@ outputs:
         - python
         - packaging
         - cloudpickle
+
+    # # socket.gaierror: [Errno 8] nodename nor servname provided, or not known
+    # {% set ignore_tests = " --ignore=unidist/test/test_utils.py" %}
+    # # _pickle.PicklingError: Can't pickle <class 'unidist.test.utils.TestActor'>: it's not the same object as unidist.test.utils.TestActor
+    # {% set ignore_tests = ignore_tests + " --ignore=unidist/test/test_actor.py" %}
     test:
       source_files:
         - unidist
@@ -65,6 +67,7 @@ outputs:
       commands:
         - pip check
         - python -c "from importlib.metadata import version; assert(version('{{ name }}')=='{{ version }}')"
+        # - pytest {{ ignore_tests }} unidist/test
         - pytest unidist/test
         # unidist has "pymp" and "pyseq" backends by default so we test both
         - python -c "import unidist; import unidist.config as cfg; cfg.Backend.put('pyseq'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"
@@ -151,3 +154,5 @@ about:
 extra:
   recipe-maintainers:
     - YarShev
+  skip-lints:
+    - invalid_url
