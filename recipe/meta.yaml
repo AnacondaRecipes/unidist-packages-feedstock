@@ -51,9 +51,12 @@ outputs:
         - packaging
         - cloudpickle
 
+    {% set ignore_tests = "" %}
     # _pickle.PicklingError: Can't pickle <class 'unidist.test.utils.TestActor'>: it's not the same object as unidist.test.utils.TestActor
-    # https://github.com/modin-project/unidist/issues/70
-    {% set ignore_tests = "--ignore=unidist/test/test_actor.py" %}
+    {% set ignore_tests = "--ignore=unidist/test/test_actor.py" %} # [osx]
+    # socket.gaierror: [Errno 8] nodename nor servname provided, or not known
+    {% set ignore_tests = ignore_tests + " --ignore=unidist/test/test_general.py" %} # [osx]
+
     test:
       source_files:
         - unidist
@@ -67,8 +70,7 @@ outputs:
       commands:
         - pip check
         - python -c "from importlib.metadata import version; assert(version('{{ name }}')=='{{ version }}')"
-        - pytest unidist/test #  [not osx]
-        - pytest {{ ignore_tests }} unidist/test #  [osx]
+        - pytest {{ ignore_tests }} unidist/test
         # unidist has "pymp" and "pyseq" backends by default so we test both
         - python -c "import unidist; import unidist.config as cfg; cfg.Backend.put('pyseq'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"
         - python -c "import unidist; import unidist.config as cfg; cfg.Backend.put('pymp'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"
