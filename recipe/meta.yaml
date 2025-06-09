@@ -117,7 +117,7 @@ outputs:
       commands:
         # LINUX: Failed to register worker to Raylet: IOError: [RayletClient] Unable to register worker with raylet.
         # https://github.com/ray-project/ray/issues/30012
-        - python -c "import unidist; import unidist.config as cfg; cfg.Backend.put('ray'); unidist.init(); ref = unidist.put(1); unidist.get(ref)" #  [not linux64]
+        - python -c "import unidist; import unidist.config as cfg; cfg.Backend.put('ray'); unidist.init(); ref = unidist.put(1); unidist.get(ref)" #  [not linux]
 
   - name: unidist-mpi
     requirements:
