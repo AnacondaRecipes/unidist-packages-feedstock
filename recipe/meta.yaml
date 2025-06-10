@@ -111,10 +111,7 @@ outputs:
         - unidist.config
         - unidist.core
       commands:
-        # LINUX: Failed to register worker to Raylet: IOError: [RayletClient] Unable to register worker with raylet.
-        - python -c "import unidist; import unidist.config as cfg; cfg.Backend.put('ray'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"  # [not linux]
-        # https://stackoverflow.com/questions/72464756/ray-on-slurm-problems-with-initialization/72492737#72492737
-        - python -c "import ray; ray.init(ignore_reinit_error=True, num_cpus=4)" # [linux]
+        - python -c "import os; os.environ['UNIDIST_CPUS'] = '4'; import unidist; import unidist.config as cfg; cfg.Backend.put('ray'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"
 
   - name: unidist-mpi
     requirements:
