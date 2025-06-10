@@ -43,7 +43,9 @@ outputs:
       host:
         - pip
         - wheel
-        - setuptools
+        # different ver of setuptools to fix test for unidist-ray
+        - setuptools <70.0.0  # [py<313]
+        - setuptools  # [py>=313]
         - cython
         - python
       run:
@@ -53,9 +55,9 @@ outputs:
 
     {% set ignore_tests = "" %}
     # _pickle.PicklingError: Can't pickle <class 'unidist.test.utils.TestActor'>: it's not the same object as unidist.test.utils.TestActor
-    {% set ignore_tests = "--ignore=unidist/test/test_actor.py" %} # [osx]
+    {% set ignore_tests = "--ignore=unidist/test/test_actor.py" %}  # [osx]
     # socket.gaierror: [Errno 8] nodename nor servname provided, or not known
-    {% set ignore_tests = ignore_tests + " --ignore=unidist/test/test_general.py" %} # [osx]
+    {% set ignore_tests = ignore_tests + " --ignore=unidist/test/test_general.py" %}  # [osx]
 
     test:
       source_files:
@@ -112,8 +114,9 @@ outputs:
         - unidist.core
       commands:
         # LINUX: Failed to register worker to Raylet: IOError: [RayletClient] Unable to register worker with raylet.
-        # https://github.com/ray-project/ray/issues/30012
         - python -c "import unidist; import unidist.config as cfg; cfg.Backend.put('ray'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"  # [not linux]
+        # https://stackoverflow.com/questions/72464756/ray-on-slurm-problems-with-initialization/72492737#72492737
+        - python -c "import ray; ray.init(ignore_reinit_error=True, num_cpus=4)" # [linux]
 
   - name: unidist-mpi
     requirements:
