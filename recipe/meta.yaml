@@ -43,9 +43,7 @@ outputs:
       host:
         - pip
         - wheel
-        # different ver of setuptools to fix test for unidist-ray
-        - setuptools <70.0.0  # [py<313]
-        - setuptools  # [py>=313]
+        - setuptools
         - cython
         - python
       run:
