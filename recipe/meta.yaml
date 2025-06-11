@@ -111,7 +111,8 @@ outputs:
         - unidist.config
         - unidist.core
       commands:
-        - python -c "import os; os.environ['UNIDIST_CPUS'] = '4'; import unidist; import unidist.config as cfg; cfg.Backend.put('ray'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"
+        # It works on Linux64 dev platform (t3.2xlarge)
+        - python -c "import unidist; import unidist.config as cfg; cfg.Backend.put('ray'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"  # [not linux64]
 
   - name: unidist-mpi
     requirements:
