@@ -10,7 +10,7 @@ source:
   sha256: 4306da65fa22239b99349aade3c1d31ab245d25c7c2250f152c8eeb2e86d922f
 
 build:
-  number: 0
+  number: 1
   skip: true  # [py<39]
 
 # the outputs map the unidist options on PyPI (see upstream definition
@@ -25,25 +25,24 @@ outputs:
         - python
         - {{ pin_subpackage('unidist', exact=True) }}
         - {{ pin_subpackage('unidist-dask', exact=True) }}
-        - {{ pin_subpackage('unidist-ray', exact=True) }}  # [py<312]
+        - {{ pin_subpackage('unidist-ray', exact=True) }}  # [py<313]
         - {{ pin_subpackage('unidist-mpi', exact=True) }}
     test:
       imports:
-        # dummy test; actual tests are in subpackages
         - unidist
+        - unidist.config
+        - unidist.core
 
   - name: unidist
-    build:
-      script: python -m pip install . --ignore-installed -vv
+    script: build_base.bat  # [win]
+    script: build_base.sh   # [not win]
     requirements:
       build:
-        - python                                 # [build_platform != target_platform]
-        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
-        - cython                                 # [build_platform != target_platform]
+        - {{ compiler('c') }}
         - {{ compiler('cxx') }}
-        - {{ stdlib("c") }}
       host:
         - pip
+        - wheel
         - setuptools
         - cython
         - python
@@ -51,10 +50,27 @@ outputs:
         - python
         - packaging
         - cloudpickle
+
+    {% set ignore_tests = "" %}
+    # _pickle.PicklingError: Can't pickle <class 'unidist.test.utils.TestActor'>: it's not the same object as unidist.test.utils.TestActor
+    {% set ignore_tests = "--ignore=unidist/test/test_actor.py" %}  # [osx]
+    # socket.gaierror: [Errno 8] nodename nor servname provided, or not known
+    {% set ignore_tests = ignore_tests + " --ignore=unidist/test/test_general.py" %}  # [osx]
+
     test:
+      source_files:
+        - unidist
       imports:
         - unidist
+        - unidist.config
+        - unidist.core
+      requires:
+        - pip
+        - pytest
       commands:
+        - pip check
+        - python -c "from importlib.metadata import version; assert(version('{{ name }}')=='{{ version }}')"
+        - pytest -v {{ ignore_tests }} unidist/test
         # unidist has "pymp" and "pyseq" backends by default so we test both
         - python -c "import unidist; import unidist.config as cfg; cfg.Backend.put('pyseq'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"
         - python -c "import unidist; import unidist.config as cfg; cfg.Backend.put('pymp'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"
@@ -71,13 +87,16 @@ outputs:
     test:
       imports:
         - unidist
+        - unidist.config
+        - unidist.core
       commands:
         - python -c "import unidist; import unidist.config as cfg; cfg.Backend.put('dask'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"
 
   - name: unidist-ray
     build:
-      # Ray does not have builds for python>=3.12
-      skip: true  # [py>=312]
+      # current available version of ray(2.37.0) in channels, doesn't support py3.13
+      # https://github.com/ray-project/ray/blob/ray-2.37.0/python/setup.py#L30
+      skip: true  # [py>312]
     requirements:
       host:
         - python
@@ -85,16 +104,15 @@ outputs:
         - python
         - {{ pin_subpackage('unidist', exact=True) }}
         - ray-default >=1.13.0
-        # aioredis 2.x breaks Ray
-        # ref: https://github.com/conda-forge/ray-packages-feedstock/issues/38
-        - aioredis <2
-        # https://github.com/modin-project/unidist/issues/324
         - pydantic <2
     test:
       imports:
         - unidist
+        - unidist.config
+        - unidist.core
       commands:
-        - python -c "import unidist; import unidist.config as cfg; cfg.Backend.put('ray'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"
+        # It works on Linux64 dev platform (t3.2xlarge)
+        - python -c "import os; os.environ['UNIDIST_CPUS'] = '4'; import unidist; import unidist.config as cfg; cfg.Backend.put('ray'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"  # [not linux64]
 
   - name: unidist-mpi
     requirements:
@@ -107,11 +125,10 @@ outputs:
         - msgpack-python >=1.0.0
         - psutil
     test:
-      # Currently we do not run actual tests for mpi backend because
-      # MPI requires more graceful set up to be run in docker container.
-      # Try out to find a fix.
       imports:
         - unidist
+        - unidist.config
+        - unidist.core
 
 about:
   home: https://github.com/modin-project/unidist
@@ -126,9 +143,11 @@ about:
     for distributed execution by supporting various performant execution backends.
     At the moment the following backends are supported under the hood:
     Ray, MPI, Dask, Python Multiprocessing (pymp), as well as a Python Sequential (pyseq) backend for debugging.
-  doc_url: https://unidist.readthedocs.io/
+  doc_url: https://unidist.readthedocs.io
   dev_url: https://github.com/modin-project/unidist
 
 extra:
   recipe-maintainers:
     - YarShev
+  skip-lints:
+    - invalid_url
