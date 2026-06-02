@@ -7,7 +7,7 @@ upstream_sources:
       from_pattern: ^v?(\d+(?:\.\d+)*.*)$
       to_pattern: \1
     packages:
-      - unidist-packages
+      - unidist-ray
       - unidist-all
       - unidist
       - unidist-dask
